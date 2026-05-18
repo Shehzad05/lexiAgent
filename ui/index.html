@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LexiAgent — AI Legal Expert</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0b0d;--bg2:#111316;--bg3:#181b1f;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --text:#e8e6e0;--muted:#6b7280;
+  --gold:#c9a84c;--gold2:#e8c56a;
+  --red:#e05252;--amber:#d48b3a;--green:#3da876;
+  --fd:'Playfair Display',Georgia,serif;
+  --fb:'DM Sans',sans-serif;
+  --fm:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--fb);font-size:14px;
+  height:100vh;overflow:hidden;display:grid;
+  grid-template-rows:60px 1fr;
+  grid-template-columns:290px 1fr 350px;
+  grid-template-areas:"hd hd hd" "lp mp rp"}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+/* HEADER */
+header{grid-area:hd;background:var(--bg2);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 20px;gap:14px}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-box{width:44px;height:44px;border:2px solid var(--gold);border-radius:8px;
+  display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+.logo-text{font-family:var(--fd);font-size:20px;color:var(--gold)}
+.logo-sub{font-family:var(--fb);font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-top:1px}
+.hdiv{width:1px;height:28px;background:var(--border);margin:0 6px}
+.status{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);font-family:var(--fm)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s ease infinite;flex-shrink:0}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.hright{margin-left:auto;display:flex;align-items:center;gap:10px}
+#fname{font-size:11px;color:var(--muted);font-family:var(--fm)}
+.btn-g{background:transparent;color:var(--muted);border:1px solid var(--border2);
+  padding:6px 14px;border-radius:4px;font-family:var(--fb);font-size:12px;cursor:pointer;transition:color .15s,border-color .15s}
+.btn-g:hover{color:var(--text);border-color:rgba(255,255,255,.25)}
+.btn-p{background:var(--gold);color:#0a0b0d;border:none;padding:7px 20px;border-radius:4px;
+  font-family:var(--fb);font-size:13px;font-weight:500;cursor:pointer;transition:background .15s}
+.btn-p:hover{background:var(--gold2)}
+.btn-p:disabled{opacity:.35;cursor:not-allowed}
+
+/* LEFT PANEL */
+.lp{grid-area:lp;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.ph{padding:12px 16px 10px;border-bottom:1px solid var(--border);font-size:10px;font-weight:500;
+  color:var(--muted);letter-spacing:.14em;text-transform:uppercase;font-family:var(--fm)}
+.upload-zone{margin:14px;border:1.5px dashed var(--border2);border-radius:8px;
+  padding:22px 14px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;position:relative}
+.upload-zone:hover,.upload-zone.drag-over{border-color:var(--gold);background:rgba(201,168,76,.04)}
+.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.up-icon{font-size:26px;margin-bottom:8px;color:var(--muted)}
+.up-title{font-size:13px;color:var(--text);font-weight:500;margin-bottom:3px}
+.up-sub{font-size:11px;color:var(--muted)}
+.fmt-row{display:flex;flex-wrap:wrap;gap:4px;padding:0 14px 14px}
+.fp{font-family:var(--fm);font-size:10px;padding:2px 8px;border:1px solid var(--border2);border-radius:3px;color:var(--muted)}
+.pipe{padding:14px;flex:1;overflow-y:auto}
+.pipe-lbl{font-size:10px;font-family:var(--fm);color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px}
+.pnode{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:6px;
+  margin-bottom:3px;border:1px solid var(--border);background:var(--bg3);
+  transition:border-color .35s,background .35s;position:relative;overflow:hidden}
+.pnode::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--muted);transition:background .35s}
+.pnode.active::before{background:var(--gold)}
+.pnode.done::before{background:var(--green)}
+.pnode.active{border-color:rgba(201,168,76,.3);background:rgba(201,168,76,.05)}
+.pnode.done{border-color:rgba(61,168,118,.22)}
+.pnode.active::after{content:'';position:absolute;top:0;left:-100%;width:55%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(201,168,76,.07),transparent);animation:shimmer 1.4s ease infinite}
+@keyframes shimmer{to{left:170%}}
+.pnum{font-family:var(--fm);font-size:10px;color:var(--muted);width:14px;flex-shrink:0}
+.pname{font-size:12px;font-weight:500;color:var(--text);margin-bottom:1px}
+.pdesc{font-size:10px;color:var(--muted);font-family:var(--fm)}
+.pstat{font-size:11px;font-family:var(--fm);color:var(--muted)}
+.pconn{width:1px;height:9px;background:var(--border2);margin:0 0 3px 20px}
+.edge-lbl{font-size:9px;font-family:var(--fm);color:var(--amber);margin:-1px 0 2px 32px;opacity:0;transition:opacity .3s}
+.edge-lbl.vis{opacity:1}
+
+/* MAIN PANEL */
+.mp{grid-area:mp;display:flex;flex-direction:column;overflow:hidden}
+.toolbar{padding:9px 18px;border-bottom:1px solid var(--border);background:var(--bg2);
+  display:flex;align-items:center;gap:6px}
+.tab{padding:5px 14px;border-radius:4px;font-size:12px;color:var(--muted);cursor:pointer;
+  border:1px solid transparent;transition:color .15s,background .15s}
+.tab:hover{color:var(--text)}
+.tab.act{color:var(--gold);background:rgba(201,168,76,.08);border-color:rgba(201,168,76,.2)}
+.mcontent{flex:1;overflow-y:auto;padding:22px;display:flex;flex-direction:column}
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:var(--muted)}
+.empty-glyph{font-family:var(--fd);font-size:80px;opacity:.1;line-height:1}
+.empty-title{font-family:var(--fd);font-size:22px;color:rgba(232,230,224,.25);font-weight:400}
+.empty-sub{font-size:12px;opacity:.45}
+.cg{display:grid;gap:8px}
+.cc{background:var(--bg2);border:1px solid var(--border);border-radius:6px;overflow:hidden;
+  cursor:pointer;animation:fu .35s ease both;transition:border-color .2s,transform .15s}
+.cc:hover{border-color:var(--border2);transform:translateY(-1px)}
+@keyframes fu{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+.cc-head{display:flex;align-items:center;gap:9px;padding:11px 13px;border-bottom:1px solid var(--border)}
+.rbadge{font-family:var(--fm);font-size:9px;font-weight:500;padding:2px 7px;border-radius:3px;letter-spacing:.07em;text-transform:uppercase}
+.rH{background:rgba(224,82,82,.14);color:#f09090;border:1px solid rgba(224,82,82,.28)}
+.rM{background:rgba(212,139,58,.14);color:#e8a870;border:1px solid rgba(212,139,58,.28)}
+.rL{background:rgba(61,168,118,.11);color:#5bc494;border:1px solid rgba(61,168,118,.22)}
+.ctitle{font-size:13px;font-weight:500;color:var(--text);flex:1}
+.cc-body{padding:11px 13px}
+.creason{font-size:12px;color:rgba(232,230,224,.6);line-height:1.65;margin-bottom:9px}
+.sugg-block{background:var(--bg3);border-left:2px solid var(--green);border-radius:0 4px 4px 0;
+  padding:9px 11px;font-size:12px;color:rgba(232,230,224,.68);line-height:1.65;display:none}
+.cc.exp .sugg-block{display:block}
+.slbl{font-family:var(--fm);font-size:10px;color:var(--green);margin-bottom:5px;letter-spacing:.05em}
+.stip{margin-top:7px;font-size:11px;color:var(--gold);font-family:var(--fm)}
+.report{font-size:14px;line-height:1.82;color:rgba(232,230,224,.82);max-width:660px}
+.report h2{font-family:var(--fd);font-size:17px;color:var(--gold);margin:22px 0 7px;font-weight:500}
+
+/* CHAT */
+.chat-wrap{display:flex;flex-direction:column;height:100%;min-height:0}
+.chat-messages{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding-bottom:10px}
+.msg-ai{background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.2);border-radius:10px;
+  padding:14px 16px;font-size:13px;line-height:1.7;color:var(--text);max-width:88%;animation:fu .2s ease}
+.msg-user{background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;
+  padding:14px 16px;font-size:13px;line-height:1.7;color:var(--text);max-width:88%;
+  align-self:flex-end;animation:fu .2s ease}
+.msg-label{font-size:10px;font-family:var(--fm);margin-bottom:6px;letter-spacing:.06em}
+.chat-input-row{padding:14px 0 0;border-top:1px solid var(--border);display:flex;gap:10px;align-items:flex-end;flex-shrink:0}
+.chat-input-row textarea{flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;
+  padding:10px 14px;color:var(--text);font-family:var(--fb);font-size:13px;resize:none;outline:none;line-height:1.6;max-height:120px}
+.chat-input-row textarea:focus{border-color:rgba(201,168,76,.4)}
+.chat-hint{padding:6px 0 0;font-size:10px;color:var(--muted);font-family:var(--fm);flex-shrink:0}
+.typing-dots span{animation:blink 1.2s ease infinite;opacity:0}
+.typing-dots span:nth-child(2){animation-delay:.2s}
+.typing-dots span:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,80%,100%{opacity:0}40%{opacity:1}}
+
+/* RIGHT PANEL */
+.rp{grid-area:rp;background:var(--bg2);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.gauge-sec{padding:18px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;align-items:center}
+.gauge-wrap{position:relative;width:150px;height:84px;margin-bottom:7px}
+.gauge-svg{width:100%;height:100%}
+.gauge-val{position:absolute;bottom:0;left:0;right:0;text-align:center;font-family:var(--fd);font-size:26px;font-weight:500;line-height:1}
+.gauge-lbl{font-family:var(--fm);font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-top:3px}
+.stats-row{display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--border)}
+.scell{padding:12px 10px;text-align:center;border-right:1px solid var(--border)}
+.scell:last-child{border-right:none}
+.sval{font-family:var(--fd);font-size:20px;margin-bottom:2px}
+.slabel{font-family:var(--fm);font-size:9px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.ov-sec{padding:12px 14px;border-bottom:1px solid var(--border)}
+.ov-row{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px}
+.ov-row:last-child{border-bottom:none}
+.ok{color:var(--muted)} .ov{color:var(--text);font-weight:500;text-align:right;max-width:55%}
+.log-sec{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.log-stream{flex:1;overflow-y:auto;padding:10px 14px;font-family:var(--fm);font-size:11px;line-height:1.8}
+.ll{display:flex;gap:7px;animation:li .18s ease both}
+@keyframes li{from{opacity:0;transform:translateX(-3px)}to{opacity:1}}
+.lt{color:var(--muted);flex-shrink:0}
+.lok{color:var(--green)}.lrun{color:var(--gold)}.lwarn{color:var(--amber)}.lerr{color:var(--red)}
+
+/* OVERLAY */
+.overlay{display:none;position:fixed;inset:0;background:rgba(10,11,13,.72);z-index:100;align-items:center;justify-content:center}
+.overlay.show{display:flex}
+.ov-card{background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:30px 38px;text-align:center;min-width:260px}
+.spinner{width:38px;height:38px;border:2px solid var(--border2);border-top-color:var(--gold);
+  border-radius:50%;animation:spin .75s linear infinite;margin:0 auto 14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ov-step{font-family:var(--fm);font-size:12px;color:var(--gold);margin-bottom:4px}
+.ov-sub{font-size:11px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-box">⚖</div>
+    <div>
+      <div class="logo-text">LexiAgent</div>
+      <div class="logo-sub">AI Legal Expert</div>
+    </div>
+  </div>
+  <div class="hdiv"></div>
+  <div class="status"><span class="dot"></span>Powered by Artificial Intelligence</div>
+  <div class="hright">
+    <span id="fname">No file loaded</span>
+    <button class="btn-g" onclick="resetAll()">Reset</button>
+    <button class="btn-p" id="analyze-btn" onclick="startAnalysis()" disabled>Analyze Contract</button>
+  </div>
+</header>
+
+<aside class="lp">
+  <div class="ph">Document Input</div>
+  <div class="upload-zone" id="uz"
+       ondragover="event.preventDefault();this.classList.add('drag-over')"
+       ondragleave="this.classList.remove('drag-over')"
+       ondrop="handleDrop(event)">
+    <input type="file" id="file-input" accept=".pdf,.docx,.xlsx,.pptx,.html,.txt" onchange="handleFile(this)">
+    <div class="up-icon">📄</div>
+    <div class="up-title">Drop contract here</div>
+    <div class="up-sub">or click to browse</div>
+  </div>
+  <div class="fmt-row">
+    <span class="fp">PDF</span><span class="fp">DOCX</span><span class="fp">XLSX</span>
+    <span class="fp">PPTX</span><span class="fp">HTML</span><span class="fp">TXT</span>
+  </div>
+  <div class="pipe">
+    <div class="pipe-lbl">Agent Pipeline</div>
+    <div class="pnode" id="n1"><span class="pnum">01</span>
+      <div><div class="pname">Document Loader</div><div class="pdesc">Multi-format reader</div></div>
+      <span class="pstat" id="ns1">—</span></div>
+    <div class="pconn"></div>
+    <div class="pnode" id="n2"><span class="pnum">02</span>
+      <div><div class="pname">Contract Parser</div><div class="pdesc">clauses · parties · dates</div></div>
+      <span class="pstat" id="ns2">—</span></div>
+    <div class="pconn"></div>
+    <div class="pnode" id="n3"><span class="pnum">03</span>
+      <div><div class="pname">Risk Analyzer</div><div class="pdesc">score each clause</div></div>
+      <span class="pstat" id="ns3">—</span></div>
+    <div class="edge-lbl" id="econd">↩ conditional: re-parse if score &gt; 80</div>
+    <div class="pconn"></div>
+    <div class="pnode" id="n4"><span class="pnum">04</span>
+      <div><div class="pname">Negotiation Advisor</div><div class="pdesc">rewrite suggestions</div></div>
+      <span class="pstat" id="ns4">—</span></div>
+    <div class="pconn"></div>
+    <div class="pnode" id="n5"><span class="pnum">05</span>
+      <div><div class="pname">Report Generator</div><div class="pdesc">executive summary</div></div>
+      <span class="pstat" id="ns5">—</span></div>
+  </div>
+</aside>
+
+<main class="mp">
+  <div class="toolbar">
+    <div class="tab act" id="tab-clauses" onclick="swTab('clauses',this)">Clause Heatmap</div>
+    <div class="tab" id="tab-report"  onclick="swTab('report',this)">Full Report</div>
+    <div class="tab" id="tab-raw"     onclick="swTab('raw',this)">Contract Text</div>
+    <div class="tab" id="tab-chat"    onclick="swTab('chat',this)">💬 Ask AI Advisor</div>
+    <div style="margin-left:auto;display:flex;gap:8px">
+      <button class="btn-g" id="dl-pdf" onclick="downloadPDF()" style="display:none;font-size:11px;padding:5px 12px">⬇ PDF</button>
+      <button class="btn-g" id="dl-txt" onclick="downloadTXT()" style="display:none;font-size:11px;padding:5px 12px">⬇ TXT</button>
+    </div>
+  </div>
+  <div class="mcontent" id="mc">
+    <div class="empty" id="empty-state">
+      <div class="empty-glyph">§</div>
+      <div class="empty-title">Upload a contract to begin</div>
+      <div class="empty-sub">PDF · DOCX · and 4 more formats supported</div>
+    </div>
+    <div id="panel-clauses" style="display:none" class="cg"></div>
+    <div id="panel-report"  style="display:none" class="report"></div>
+    <div id="panel-raw"     style="display:none;font-family:var(--fm);font-size:11px;line-height:1.8;color:var(--muted);white-space:pre-wrap"></div>
+    <div id="panel-chat"    style="display:none;flex-direction:column;height:100%;min-height:0">
+      <div class="chat-wrap">
+        <div class="chat-messages" id="chat-messages">
+          <div class="msg-ai">
+            <div class="msg-label" style="color:var(--gold)">⚖ AI LEGAL ADVISOR</div>
+            Hello! Upload and analyze a contract first — then I can answer any question about it. I can explain clauses, assess risks, and tell you whether you should sign.
+          </div>
+        </div>
+        <div class="chat-input-row">
+          <textarea id="chat-input" rows="1" placeholder="e.g. Should I sign this? What is the riskiest clause?" onkeydown="chatKeydown(event)"></textarea>
+          <button class="btn-p" onclick="sendChat()" style="padding:9px 18px;font-size:13px">Send ↗</button>
+        </div>
+        <div class="chat-hint">Shift+Enter for new line · Ask about any clause, risk, or negotiation strategy</div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<aside class="rp">
+  <div class="ph">Risk Intelligence</div>
+  <div class="gauge-sec">
+    <div class="gauge-wrap">
+      <svg class="gauge-svg" viewBox="0 0 150 84">
+        <path d="M18 76 A57 57 0 0 1 132 76" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="9" stroke-linecap="round"/>
+        <path id="garc" d="M18 76 A57 57 0 0 1 132 76" fill="none" stroke="#3da876" stroke-width="9"
+              stroke-linecap="round" stroke-dasharray="179" stroke-dashoffset="179"
+              style="transition:stroke-dashoffset 1.1s ease,stroke .6s ease"/>
+      </svg>
+      <div class="gauge-val" id="gval">—</div>
+    </div>
+    <div class="gauge-lbl">Overall Risk Score</div>
+  </div>
+  <div class="stats-row">
+    <div class="scell"><div class="sval" id="sh" style="color:var(--red)">—</div><div class="slabel">High</div></div>
+    <div class="scell"><div class="sval" id="sm" style="color:var(--amber)">—</div><div class="slabel">Medium</div></div>
+    <div class="scell"><div class="sval" id="sl" style="color:var(--green)">—</div><div class="slabel">Low</div></div>
+  </div>
+  <div class="ov-sec">
+    <div class="ov-row"><span class="ok">Contract Type</span><span class="ov" id="ot">—</span></div>
+    <div class="ov-row"><span class="ok">Parties</span><span class="ov" id="op">—</span></div>
+    <div class="ov-row"><span class="ok">Effective</span><span class="ov" id="oe">—</span></div>
+    <div class="ov-row"><span class="ok">Expiry</span><span class="ov" id="ox">—</span></div>
+    <div class="ov-row"><span class="ok">Clauses</span><span class="ov" id="ocl">—</span></div>
+  </div>
+  <div class="log-sec">
+    <div class="ph">Agent Log</div>
+    <div class="log-stream" id="ls">
+      <div class="ll"><span class="lt">00.0s</span><span class="lok">System ready. Awaiting document.</span></div>
+    </div>
+  </div>
+</aside>
+
+<div class="overlay" id="overlay">
+  <div class="ov-card">
+    <div class="spinner"></div>
+    <div class="ov-step" id="ovs">Initializing...</div>
+    <div class="ov-sub">AI Legal Expert · Analyzing...</div>
+  </div>
+</div>
+
+<script>
+const API = "http://localhost:8000";
+
+const NODE_LABELS = {
+  1:"Reading your document...",
+  2:"Parsing contract structure...",
+  3:"Analyzing risk levels...",
+  4:"Generating negotiation advice...",
+  5:"Writing executive report..."
+};
+
+let t0 = Date.now();
+let _result = null;
+let _chatHistory = [];
+let _currentFile = null;
+
+// ── File handling ─────────────────────────────────────────────────────────────
+function handleFile(inp) {
+  if (inp.files && inp.files[0]) {
+    _currentFile = inp.files[0];
+    setFile(inp.files[0].name);
+  }
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('uz').classList.remove('drag-over');
+  if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+    _currentFile = e.dataTransfer.files[0];
+    setFile(e.dataTransfer.files[0].name);
+  }
+}
+
+function setFile(name) {
+  document.getElementById('fname').textContent = name;
+  document.getElementById('analyze-btn').disabled = false;
+  addLog('ok', 'File loaded: ' + name);
+}
+
+// ── Tab switching ─────────────────────────────────────────────────────────────
+function swTab(t, el) {
+  document.querySelectorAll('.tab').forEach(function(x){ x.classList.remove('act'); });
+  el.classList.add('act');
+  var ids = ['panel-clauses','panel-report','panel-raw','panel-chat'];
+  ids.forEach(function(id){
+    var p = document.getElementById(id);
+    if (p) p.style.display = 'none';
+  });
+  var target = document.getElementById('panel-' + t);
+  if (target) {
+    target.style.display = (t === 'chat') ? 'flex' : 'block';
+  }
+}
+
+// ── Log ───────────────────────────────────────────────────────────────────────
+function addLog(type, msg) {
+  var el = document.createElement('div');
+  el.className = 'll';
+  var elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+  el.innerHTML = '<span class="lt">' + elapsed + 's</span><span class="l' + type + '">' + msg + '</span>';
+  var ls = document.getElementById('ls');
+  ls.appendChild(el);
+  ls.scrollTop = ls.scrollHeight;
+}
+
+// ── Node state ────────────────────────────────────────────────────────────────
+function sNode(n, st, lbl) {
+  var nd = document.getElementById('n' + n);
+  var ns = document.getElementById('ns' + n);
+  nd.className = 'pnode' + (st ? ' ' + st : '');
+  ns.textContent = lbl;
+  ns.style.color = st === 'active' ? 'var(--gold)' : st === 'done' ? 'var(--green)' : 'var(--muted)';
+}
+
+// ── Gauge ─────────────────────────────────────────────────────────────────────
+function setGauge(score) {
+  var arc = document.getElementById('garc');
+  var val = document.getElementById('gval');
+  var offset = 179 - (score / 100) * 179;
+  arc.style.strokeDashoffset = offset;
+  arc.style.stroke = score > 70 ? '#e05252' : score > 40 ? '#d4893a' : '#3da876';
+  val.textContent = score;
+  val.style.color = score > 70 ? '#f08080' : score > 40 ? '#e8a85a' : '#5bc494';
+}
+
+// ── Build clause cards ────────────────────────────────────────────────────────
+function buildClauses(data) {
+  var c = document.getElementById('panel-clauses');
+  c.innerHTML = '';
+  var risks = data.risks || [];
+  var sorted = risks.slice().sort(function(a, b) {
+    var ord = {HIGH:0, MEDIUM:1, LOW:2};
+    return (ord[a.risk_level] || 0) - (ord[b.risk_level] || 0);
+  });
+  sorted.forEach(function(r, i) {
+    var s = (data.suggestions || []).find(function(x){ return x.clause_title === r.clause_title; });
+    var map = {HIGH:'rH', MEDIUM:'rM', LOW:'rL'};
+    var card = document.createElement('div');
+    card.className = 'cc';
+    card.style.animationDelay = (i * 0.06) + 's';
+    var suggHtml = '';
+    if (s) {
+      suggHtml = '<div class="sugg-block">' +
+        '<div class="slbl">↳ Suggested rewrite</div>' +
+        s.suggested_rewrite +
+        '<div class="stip">Tip: ' + s.negotiation_tip + '</div>' +
+        '</div>';
+    }
+    card.innerHTML =
+      '<div class="cc-head">' +
+        '<span class="rbadge ' + (map[r.risk_level] || '') + '">' + r.risk_level + '</span>' +
+        '<span class="ctitle">' + r.clause_title + '</span>' +
+        (s ? '<span style="font-size:10px;color:var(--green);font-family:var(--fm)">✦ tip</span>' : '') +
+      '</div>' +
+      '<div class="cc-body">' +
+        '<div class="creason">' + r.reason + '</div>' +
+        suggHtml +
+      '</div>';
+    if (s) {
+      card.querySelector('.cc-head').addEventListener('click', function() {
+        card.classList.toggle('exp');
+      });
+    }
+    c.appendChild(card);
+  });
+}
+
+// ── SSE event handler ─────────────────────────────────────────────────────────
+function handleEvent(event, data) {
+  switch(event) {
+    case 'node_start':
+      sNode(data.node, 'active', '⟳');
+      document.getElementById('overlay').classList.add('show');
+      document.getElementById('ovs').textContent = NODE_LABELS[data.node] || 'Processing...';
+      addLog('run', 'Node 0' + data.node + ' — ' + data.name);
+      break;
+
+    case 'node_done':
+      sNode(data.node, 'done', '✓');
+      document.getElementById('overlay').classList.remove('show');
+      if (data.node === 1 && data.raw_text) {
+        document.getElementById('panel-raw').textContent = data.raw_text;
+      }
+      if (data.node === 2) {
+        document.getElementById('ot').textContent = data.contract_type || '—';
+        document.getElementById('op').textContent = (data.parties || []).join(' · ') || '—';
+        document.getElementById('oe').textContent = data.effective_date || '—';
+        document.getElementById('ox').textContent = data.expiry_date || '—';
+        document.getElementById('ocl').textContent = data.clause_count || '—';
+      }
+      if (data.node === 3) {
+        document.getElementById('econd').classList.add('vis');
+        setGauge(data.overall_risk_score || 0);
+        var h = (data.risks || []).filter(function(r){ return r.risk_level === 'HIGH'; }).length;
+        var m = (data.risks || []).filter(function(r){ return r.risk_level === 'MEDIUM'; }).length;
+        var l = (data.risks || []).filter(function(r){ return r.risk_level === 'LOW'; }).length;
+        document.getElementById('sh').textContent = h;
+        document.getElementById('sm').textContent = m;
+        document.getElementById('sl').textContent = l;
+      }
+      break;
+
+    case 'conditional_edge':
+      addLog('warn', '↩ ' + (data.msg || ''));
+      break;
+
+    case 'log':
+      addLog(data.type || 'ok', data.msg || '');
+      break;
+
+    case 'complete':
+      document.getElementById('overlay').classList.remove('show');
+      _result = data;
+
+      // Report tab
+      var reportEl = document.getElementById('panel-report');
+      var reportText = (data.final_report || '');
+      reportEl.innerHTML = reportText.replace(/^([A-Z][A-Z ]{3,})$/gm, '<h2>$1</h2>');
+
+      // Clauses tab
+      buildClauses(data);
+      document.getElementById('panel-clauses').style.display = 'block';
+      document.getElementById('empty-state').style.display = 'none';
+
+      // Show download buttons
+      document.getElementById('dl-pdf').style.display = 'inline-block';
+      document.getElementById('dl-txt').style.display = 'inline-block';
+
+      // Update chat intro
+      var msgs = document.getElementById('chat-messages');
+      msgs.innerHTML = '<div class="msg-ai"><div class="msg-label" style="color:var(--gold)">⚖ AI LEGAL ADVISOR</div>I have analyzed your contract. Risk score: <b>' + (data.overall_risk_score || 0) + '/100</b>. Ask me anything — "Should I sign?", "What is the riskiest clause?", or any specific question.</div>';
+
+      addLog('ok', 'Analysis complete! Risk score: ' + (data.overall_risk_score || 0) + '/100');
+      document.getElementById('analyze-btn').disabled = false;
+      break;
+
+    case 'error':
+      addLog('err', data.msg || 'Unknown error');
+      document.getElementById('overlay').classList.remove('show');
+      document.getElementById('analyze-btn').disabled = false;
+      break;
+  }
+}
+
+// ── Main analysis ─────────────────────────────────────────────────────────────
+async function startAnalysis() {
+  if (!_currentFile) { addLog('err', 'No file selected'); return; }
+  t0 = Date.now();
+  document.getElementById('analyze-btn').disabled = true;
+  document.getElementById('empty-state').style.display = 'none';
+
+  var formData = new FormData();
+  formData.append('file', _currentFile);
+
+  try {
+    var resp = await fetch(API + '/api/analyze', { method: 'POST', body: formData });
+    if (!resp.ok) {
+      var err = await resp.json().catch(function(){ return {detail: 'Server error'}; });
+      throw new Error(err.detail || 'Server error');
+    }
+
+    var reader = resp.body.getReader();
+    var decoder = new TextDecoder();
+    var buf = '';
+
+    while (true) {
+      var result = await reader.read();
+      if (result.done) break;
+      buf += decoder.decode(result.value, {stream: true});
+      var lines = buf.split('\n');
+      buf = lines.pop();
+      var ev = '', dt = '';
+      for (var i = 0; i < lines.length; i++) {
+        var line = lines[i];
+        if (line.startsWith('event:')) { ev = line.slice(6).trim(); }
+        else if (line.startsWith('data:')) { dt = line.slice(5).trim(); }
+        else if (line === '' && ev) {
+          try { handleEvent(ev, dt ? JSON.parse(dt) : {}); } catch(e) {}
+          ev = ''; dt = '';
+        }
+      }
+    }
+  } catch(e) {
+    addLog('err', 'Error: ' + e.message);
+    document.getElementById('overlay').classList.remove('show');
+    document.getElementById('analyze-btn').disabled = false;
+  }
+}
+
+// ── Chat ──────────────────────────────────────────────────────────────────────
+function chatKeydown(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
+}
+
+async function sendChat() {
+  var input = document.getElementById('chat-input');
+  var question = input.value.trim();
+  if (!question) return;
+  input.value = '';
+
+  if (!_result) {
+    appendMsg('ai', 'Please analyze a contract first before asking questions.');
+    return;
+  }
+
+  appendMsg('user', question);
+  _chatHistory.push({role: 'user', content: question});
+
+  var typingEl = appendMsg('ai', '<span class="typing-dots">Analyzing<span>.</span><span>.</span><span>.</span></span>');
+
+  var ctx = 'You are an expert AI legal advisor. Contract analyzed:\n' +
+    'Type: ' + _result.contract_type + '\n' +
+    'Parties: ' + (_result.parties || []).join(', ') + '\n' +
+    'Risk Score: ' + _result.overall_risk_score + '/100\n\n' +
+    'Risks:\n' + (_result.risks || []).map(function(r){ return '[' + r.risk_level + '] ' + r.clause_title + ': ' + r.reason; }).join('\n') + '\n\n' +
+    'Suggestions:\n' + (_result.suggestions || []).map(function(s){ return s.clause_title + ': ' + s.suggested_rewrite; }).join('\n') + '\n\n' +
+    'Report:\n' + _result.final_report + '\n\n' +
+    'Be direct and practical. Max 200 words. If asked "should I sign" give a clear yes/no with reason based on risk score.';
+
+  try {
+    var resp = await fetch(API + '/api/chat', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        context: ctx,
+        history: _chatHistory.slice(-6),
+        question: question
+      })
+    });
+    var data = await resp.json();
+    var answer = data.answer || 'Sorry, I could not process that.';
+    typingEl.querySelector('.msg-ai > div:last-child').innerHTML = answer;
+    _chatHistory.push({role: 'assistant', content: answer});
+  } catch(e) {
+    typingEl.querySelector('.msg-ai > div:last-child').innerHTML = 'Error connecting to AI. Please try again.';
+  }
+}
+
+function appendMsg(role, html) {
+  var msgs = document.getElementById('chat-messages');
+  var div = document.createElement('div');
+  div.className = role === 'ai' ? 'msg-ai' : 'msg-user';
+  var labelColor = role === 'ai' ? 'var(--gold)' : 'var(--muted)';
+  var label = role === 'ai' ? '⚖ AI LEGAL ADVISOR' : 'YOU';
+  div.innerHTML = '<div class="msg-label" style="color:' + labelColor + '">' + label + '</div><div>' + html + '</div>';
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return div;
+}
+
+// ── Downloads ─────────────────────────────────────────────────────────────────
+function downloadTXT() {
+  if (!_result) return;
+  var d = _result;
+  var date = new Date().toLocaleDateString('en-GB');
+  var sep = '='.repeat(60);
+  var sep2 = '-'.repeat(40);
+
+  var lines = [
+    sep,
+    '  LEXIAGENT — AI LEGAL EXPERT REPORT',
+    '  Generated: ' + date,
+    sep, '',
+    'CONTRACT OVERVIEW', sep2,
+    'Type     : ' + (d.contract_type || '—'),
+    'Parties  : ' + (d.parties || []).join(' · '),
+    'Effective: ' + (d.effective_date || '—'),
+    'Expiry   : ' + (d.expiry_date || '—'),
+    'Clauses  : ' + (d.clauses || []).length,
+    'Risk Score: ' + (d.overall_risk_score || 0) + '/100',
+    '', 'RISK BREAKDOWN', sep2
+  ];
+
+  (d.risks || []).forEach(function(r) {
+    lines.push('[' + r.risk_level + '] ' + r.clause_title);
+    lines.push('  ' + r.reason);
+    lines.push('');
+  });
+
+  lines.push('NEGOTIATION SUGGESTIONS', sep2);
+  (d.suggestions || []).forEach(function(s) {
+    lines.push('▸ ' + s.clause_title);
+    lines.push('  Issue   : ' + s.issue);
+    lines.push('  Rewrite : ' + s.suggested_rewrite);
+    lines.push('  Tip     : ' + s.negotiation_tip);
+    lines.push('');
+  });
+
+  lines.push('FULL EXECUTIVE REPORT', sep2);
+  lines.push(d.final_report || '');
+  lines.push('', sep, '  Powered by LexiAgent · AI Legal Expert', sep);
+
+  var blob = new Blob([lines.join('\n')], {type: 'text/plain;charset=utf-8'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'LexiAgent_Report_' + date.replace(/\//g, '-') + '.txt';
+  a.click();
+}
+
+function downloadPDF() {
+  if (!_result) return;
+  var d = _result;
+  var date = new Date().toLocaleDateString('en-GB');
+  var score = d.overall_risk_score || 0;
+  var scoreColor = score > 70 ? '#c0392b' : score > 40 ? '#d68910' : '#1e8449';
+  var scoreBg = score > 70 ? '#fdedec' : score > 40 ? '#fef9e7' : '#eafaf1';
+  var riskColors = {HIGH:'#c0392b', MEDIUM:'#d68910', LOW:'#1e8449'};
+  var riskBgs = {HIGH:'#fdedec', MEDIUM:'#fef9e7', LOW:'#eafaf1'};
+
+  var risksHTML = (d.risks || []).map(function(r) {
+    return '<div style="margin-bottom:10px;padding:10px 14px;background:' + (riskBgs[r.risk_level]||'#f9f9f9') + ';border-left:4px solid ' + (riskColors[r.risk_level]||'#888') + ';border-radius:0 6px 6px 0">' +
+      '<span style="font-size:11px;font-weight:600;color:' + (riskColors[r.risk_level]||'#888') + ';text-transform:uppercase">' + r.risk_level + '</span>' +
+      '<span style="font-weight:600;margin-left:10px;font-size:13px">' + r.clause_title + '</span>' +
+      '<div style="margin-top:4px;font-size:12px;color:#555">' + r.reason + '</div></div>';
+  }).join('');
+
+  var suggHTML = (d.suggestions || []).map(function(s) {
+    return '<div style="margin-bottom:14px;padding:12px 16px;border:1px solid #e0e0e0;border-radius:6px">' +
+      '<div style="font-weight:600;font-size:13px;margin-bottom:6px">📌 ' + s.clause_title + '</div>' +
+      '<div style="font-size:12px;color:#c0392b;margin-bottom:4px"><b>Issue:</b> ' + s.issue + '</div>' +
+      '<div style="font-size:12px;color:#1e8449;margin-bottom:4px"><b>Rewrite:</b> ' + s.suggested_rewrite + '</div>' +
+      '<div style="font-size:12px;color:#d68910"><b>Tip:</b> ' + s.negotiation_tip + '</div></div>';
+  }).join('');
+
+  var reportHtml = (d.final_report || '').replace(/^([A-Z][A-Z ]{3,})$/gm, '<h3 style="color:#1a1a2e;border-bottom:1px solid #eee;padding-bottom:4px;margin-top:20px">$1</h3>');
+
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>LexiAgent Report</title>' +
+    '<style>body{font-family:Segoe UI,sans-serif;margin:0;padding:40px;color:#1a1a2e;font-size:13px;line-height:1.7}' +
+    'h1{font-size:26px;font-weight:700;margin-bottom:4px}h2{font-size:15px;font-weight:600;border-bottom:2px solid #1a1a2e;padding-bottom:6px;margin-top:28px;margin-bottom:14px}' +
+    '.meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;background:#f8f9fa;padding:14px 18px;border-radius:8px;margin:16px 0}' +
+    '.footer{margin-top:40px;padding-top:14px;border-top:1px solid #eee;font-size:11px;color:#aaa;text-align:center}' +
+    '@media print{body{padding:20px}@page{margin:1.5cm}}</style></head><body>' +
+    '<h1>⚖ LexiAgent</h1>' +
+    '<div style="color:#888;font-size:12px;margin-bottom:20px">AI Legal Expert Report · ' + date + '</div>' +
+    '<h2>Contract Overview</h2>' +
+    '<div class="meta">' +
+      '<div><span style="color:#888">Type: </span><b>' + (d.contract_type||'—') + '</b></div>' +
+      '<div><span style="color:#888">Risk Score: </span><span style="font-size:22px;font-weight:700;color:' + scoreColor + ';background:' + scoreBg + ';padding:2px 12px;border-radius:6px">' + score + '/100</span></div>' +
+      '<div><span style="color:#888">Parties: </span><b>' + (d.parties||[]).join(' · ') + '</b></div>' +
+      '<div><span style="color:#888">Clauses: </span><b>' + (d.clauses||[]).length + '</b></div>' +
+      '<div><span style="color:#888">Effective: </span><b>' + (d.effective_date||'—') + '</b></div>' +
+      '<div><span style="color:#888">Expiry: </span><b>' + (d.expiry_date||'—') + '</b></div>' +
+    '</div>' +
+    '<h2>Risk Breakdown</h2>' + risksHTML +
+    '<h2>Negotiation Suggestions</h2>' + suggHTML +
+    '<h2>Executive Report</h2><div style="line-height:1.8;color:#333">' + reportHtml + '</div>' +
+    '<div class="footer">Powered by LexiAgent · AI Legal Expert · Milan AI Week 2026</div>' +
+    '</body></html>';
+
+  var win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+  win.onload = function() { setTimeout(function(){ win.print(); }, 400); };
+}
+
+// ── Reset ─────────────────────────────────────────────────────────────────────
+function resetAll() {
+  _result = null;
+  _chatHistory = [];
+  _currentFile = null;
+  document.getElementById('analyze-btn').disabled = true;
+  document.getElementById('fname').textContent = 'No file loaded';
+  document.getElementById('file-input').value = '';
+  document.getElementById('empty-state').style.display = 'flex';
+  ['panel-clauses','panel-report','panel-raw','panel-chat'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  document.getElementById('gval').textContent = '—';
+  document.getElementById('garc').style.strokeDashoffset = '179';
+  ['sh','sm','sl','ot','op','oe','ox','ocl'].forEach(function(id){
+    document.getElementById(id).textContent = '—';
+  });
+  [1,2,3,4,5].forEach(function(n){ sNode(n, '', '—'); });
+  document.getElementById('econd').classList.remove('vis');
+  document.getElementById('dl-pdf').style.display = 'none';
+  document.getElementById('dl-txt').style.display = 'none';
+  document.getElementById('ls').innerHTML = '<div class="ll"><span class="lt">00.0s</span><span class="lok">System ready. Awaiting document.</span></div>';
+  document.getElementById('chat-messages').innerHTML = '<div class="msg-ai"><div class="msg-label" style="color:var(--gold)">⚖ AI LEGAL ADVISOR</div>Upload and analyze a contract first — then I can answer any question about it.</div>';
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('act'); });
+  document.getElementById('tab-clauses').classList.add('act');
+  t0 = Date.now();
+}
+</script>
+</body>
+</html>
