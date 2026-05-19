@@ -14,14 +14,12 @@
 import os
 from pydantic_settings import BaseSettings
 
-class Settings(BaseSettings):
-    anthropic_api_key: str = os.getenv("ANTHROPIC_API_KEY", "")
-    host: str = os.getenv("HOST", "0.0.0.0")
-    port: int = int(os.getenv("PORT", "8080"))
-    env: str = os.getenv("ENV", "production")
 
-    class Config:
-        env_file = ".env"
-        extra = "ignore"
-
+ 
+class Settings:
+    anthropic_api_key: str = os.environ.get("ANTHROPIC_API_KEY", "")
+    host: str = os.environ.get("HOST", "0.0.0.0")
+    port: int = int(os.environ.get("PORT", "8000"))
+    env: str = os.environ.get("ENV", "production")
+ 
 settings = Settings()
